@@ -28,7 +28,18 @@ call() {
     ./apps/APM4 $address &
     ./apps/APM5 $address &
     ./apps/APM6 $address &
-    wait
+    #wait
+}
+
+# Get Process Metrics
+psmetrics() {
+    i=1
+    while [ $i -lt 7 ]
+    do
+        data=$(ps aux | grep "APM$i" | grep -v "grep" | awk -F \  '{OFS=","; print $3,$4}')
+        echo "$1,$data" >> APM$i\_metrics.csv
+        (( i++ ))
+    done
 }
 
 # Get ip
@@ -36,3 +47,19 @@ result=$(getAddress)
 
 # Call 
 call $result
+
+
+# Cleanup existing APM*.txt files so we start fresh
+if [ -f APM1_metrics.csv ]
+then
+    rm APM*.csv
+fi
+
+# Get metrics
+seconds=0
+while true 
+do
+    sleep 5
+    seconds=$(( $seconds + 5 ))
+    psmetrics $seconds 
+done
