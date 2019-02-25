@@ -28,7 +28,6 @@ call() {
     ./apps/APM4 $address &
     ./apps/APM5 $address &
     ./apps/APM6 $address &
-    #wait
 }
 
 # Get Process Metrics
@@ -42,6 +41,17 @@ psmetrics() {
     done
 }
 
+sysmetrics() {
+    disk_writes=$(iostat | grep sda | awk -F \  '{print $4}')
+    disk_space_kb=$(df | grep "centos-root" | awk -F \  '{print $4}')
+    available_disk_space=$(( $disk_space_kb / 1024 ))
+    # will need to tx/rx data rate of "ens33" for final submission
+    tx=0
+    rx=0
+    echo "$1,$rx,$tx,$disk_writes,$available_disk_space" >> system_metrics.csv 
+
+}
+
 # Get ip
 result=$(getAddress)
 
@@ -50,9 +60,10 @@ call $result
 
 
 # Cleanup existing APM*.txt files so we start fresh
-if [ -f APM1_metrics.csv ]
+if [ -f system_metrics.csv ]
 then
     rm APM*.csv
+    rm system_metrics.csv
 fi
 
 # Get metrics
@@ -62,4 +73,5 @@ do
     sleep 5
     seconds=$(( $seconds + 5 ))
     psmetrics $seconds 
+    sysmetrics $seconds
 done
