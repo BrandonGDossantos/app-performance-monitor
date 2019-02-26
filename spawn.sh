@@ -9,6 +9,7 @@ cleanup() {
     pkill -f "APM4"
     pkill -f "APM5"
     pkill -f "APM6"
+    pkill -f "ifstat -d 1"
 }
 trap cleanup EXIT
 
@@ -22,6 +23,7 @@ getAddress() {
 # Call processes with address and background
 call() {
     address=$1
+    ifstat -d 1
     ./apps/APM1 $address & 
     ./apps/APM2 $address &
     ./apps/APM3 $address &
@@ -46,8 +48,11 @@ sysmetrics() {
     disk_space_kb=$(df | grep "centos-root" | awk -F \  '{print $4}')
     available_disk_space=$(( $disk_space_kb / 1024 ))
     # will need to tx/rx data rate of "ens33" for final submission
-    tx=0
-    rx=0
+    ifout=$(ifstat en* | grep en | awk -F \  '{print $7,$9}')
+    rx=$(echo $ifout | awk -F \  '{print $1}') 
+    tx=$(echo $ifout | awk -F \  '{print $2}') 
+    rx=${rx//K}
+    tx=${tx//K}
     echo "$1,$rx,$tx,$disk_writes,$available_disk_space" >> system_metrics.csv 
 
 }
@@ -67,11 +72,10 @@ then
 fi
 
 # Get metrics
-seconds=0
+SECONDS=0
 while true 
 do
     sleep 5
-    seconds=$(( $seconds + 5 ))
-    psmetrics $seconds 
-    sysmetrics $seconds
+    psmetrics $SECONDS
+    sysmetrics $SECONDS
 done
